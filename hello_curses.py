@@ -11,14 +11,15 @@ ROCKET_FRAME_1 = f"{FRAMES_DIR}/rocket_frame_1.txt"
 STAR_COUNT = 100
 STAR_SYMBOLS = "+*.:"
 TIC_TIMEOUT = 0.1
+MAX_START_DELAY_TICS = 20
+BORDER_THICKNESS = 1
 
 
-async def blink(canvas, row, column, symbol="*"):
-    dim_ticks = int(2 / TIC_TIMEOUT)
-    normal_ticks = int(0.3 / TIC_TIMEOUT)
-    bold_ticks = int(0.5 / TIC_TIMEOUT)
-    start_delay = random.randint(0, 20)
-    for _ in range(start_delay):
+async def blink(canvas, row, column, offset_tics, symbol="*"):
+    dim_ticks = round(2 / TIC_TIMEOUT)
+    normal_ticks = round(0.3 / TIC_TIMEOUT)
+    bold_ticks = round(0.5 / TIC_TIMEOUT)
+    for _ in range(offset_tics):
         await asyncio.sleep(0)
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
@@ -114,10 +115,14 @@ def draw(canvas):
     canvas.nodelay(True)
     canvas.border()
     max_rows, max_columns = canvas.getmaxyx()
+    min_star_row = BORDER_THICKNESS
+    max_star_row = max_rows - BORDER_THICKNESS - 1
+    min_star_column = BORDER_THICKNESS
+    max_star_column = max_columns - BORDER_THICKNESS - 1
     stars = [
         (
-            random.randint(1, max_rows - 2),
-            random.randint(1, max_columns - 2),
+            random.randint(min_star_row, max_star_row),
+            random.randint(min_star_column, max_star_column),
             random.choice(STAR_SYMBOLS),
         )
         for _ in range(STAR_COUNT)
@@ -129,7 +134,16 @@ def draw(canvas):
     start_row = max_rows // 2 - frame_rows // 2
     start_column = max_columns // 2 - frame_columns // 2
 
-    coroutines = [blink(canvas, row, column, symbol) for row, column, symbol in stars]
+    coroutines = [
+        blink(
+            canvas,
+            row,
+            column,
+            random.randint(0, MAX_START_DELAY_TICS),
+            symbol,
+        )
+        for row, column, symbol in stars
+    ]
     coroutines.append(
         animate_spaceship(
             canvas,
