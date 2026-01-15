@@ -2,12 +2,22 @@ import curses
 
 
 def draw_frame(canvas, start_row, start_column, text, negative=False):
+    max_rows, max_columns = canvas.getmaxyx()
     for row_index, line in enumerate(text.splitlines()):
+        row = start_row + row_index
+        if row < 0 or row >= max_rows:
+            continue
         for column_index, char in enumerate(line):
+            column = start_column + column_index
+            if column < 0 or column >= max_columns:
+                continue
             if char == " " and not negative:
                 continue
             draw_char = " " if negative else char
-            canvas.addch(start_row + row_index, start_column + column_index, draw_char)
+            try:
+                canvas.addch(row, column, draw_char)
+            except curses.error:
+                continue
 
 
 def get_frame_size(text):
