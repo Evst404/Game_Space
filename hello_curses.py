@@ -3,6 +3,7 @@ import curses
 import itertools
 import random
 import time
+from pathlib import Path
 
 from curses_tools import draw_frame, get_frame_size, read_controls
 from explosion import explode
@@ -10,17 +11,9 @@ from game_scenario import PHRASES, get_garbage_delay_tics
 from obstacles import Obstacle
 from physics import update_speed
 
-FRAMES_DIR = "frames"
-ROCKET_FRAME_1 = f"{FRAMES_DIR}/rocket_frame_1.txt"
-GARBAGE_FRAMES_DIR = f"{FRAMES_DIR}/garbage"
-GARBAGE_FRAME_FILES = (
-    f"{GARBAGE_FRAMES_DIR}/duck.txt",
-    f"{GARBAGE_FRAMES_DIR}/hubble.txt",
-    f"{GARBAGE_FRAMES_DIR}/lamp.txt",
-    f"{GARBAGE_FRAMES_DIR}/trash_large.txt",
-    f"{GARBAGE_FRAMES_DIR}/trash_small.txt",
-    f"{GARBAGE_FRAMES_DIR}/trash_xl.txt",
-)
+FRAMES_DIR = Path("frames")
+ROCKET_FRAMES_DIR = FRAMES_DIR / "rocket"
+GARBAGE_FRAMES_DIR = FRAMES_DIR / "garbage"
 STAR_COUNT = 100
 STAR_SYMBOLS = "+*.:"
 TIC_TIMEOUT = 0.1
@@ -100,7 +93,6 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
 
 async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
-    """Animate garbage, flying from top to bottom."""
     rows_number, columns_number = canvas.getmaxyx()
     frame_rows, frame_columns = get_frame_size(garbage_frame)
 
@@ -290,14 +282,9 @@ def draw(canvas):
         )
         for _ in range(STAR_COUNT)
     ]
-    with open(ROCKET_FRAME_1, "r") as frame_file:
-        spaceship_frame = frame_file.read()
-    garbage_frames = []
-    for garbage_path in GARBAGE_FRAME_FILES:
-        with open(garbage_path, "r") as garbage_file:
-            garbage_frames.append(garbage_file.read())
-    frames = [spaceship_frame]
-    frame_rows, frame_columns = get_frame_size(spaceship_frame)
+    frames = load_frames(ROCKET_FRAMES_DIR)
+    garbage_frames = load_frames(GARBAGE_FRAMES_DIR)
+    frame_rows, frame_columns = get_frame_size(frames[0])
     start_row = max_rows // 2 - frame_rows // 2
     start_column = max_columns // 2 - frame_columns // 2
     coroutines = [
@@ -343,6 +330,13 @@ def draw(canvas):
 async def sleep(tics=1):
     for _ in range(tics):
         await asyncio.sleep(0)
+
+
+def load_frames(frames_dir):
+    return [
+        frame_path.read_text()
+        for frame_path in sorted(frames_dir.glob("*.txt"))
+    ]
 
 
 if __name__ == "__main__":
